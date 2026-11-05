@@ -96,6 +96,24 @@ export function seedProjects(): Project[] {
       recordType,
       budget,
       participants,
+      profile: {
+        region: 'Fictional demonstration region',
+        projectManager: 'Demo project team',
+        participantFocus: 'Fictional community households',
+        themes: 'Livelihoods; food security',
+        plannedDirect: participants,
+        plannedIndirect: participants * 2,
+        newParticipants: Math.floor(participants / 2),
+        totalParticipants: participants,
+        narrative:
+          'Fictional demonstration narrative describing community-led learning and delivery.',
+        problemOne: 'Fictional challenge: limited access to resilient livelihood opportunities.',
+        recommendations:
+          'Fictional recommendation: develop the delivery plan with community groups.',
+        fundingStatus:
+          stage === 'Active' ? 'Fictional funding secured' : 'Fictional funding under development',
+        actualStartDate: stage === 'Active' ? '2026-10-01' : undefined,
+      },
       designStatus:
         stage === 'Project Design'
           ? 'In Design'

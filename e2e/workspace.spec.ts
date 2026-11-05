@@ -9,7 +9,8 @@ test('create, edit, persist, preview and reset a fictional project', async ({ pa
   await expect(dialog.getByLabel('Project code', { exact: true })).toHaveValue('DEMO-KEXX00109');
   await expect(dialog.getByLabel('Project code', { exact: true })).toHaveAttribute('readonly', '');
   await dialog.getByLabel('Budget (GBP)', { exact: true }).fill('123000');
-  await dialog.getByLabel('Planned participants', { exact: true }).fill('800');
+  await dialog.getByText('Participants and delivery dates', { exact: true }).click();
+  await dialog.getByLabel('Planned direct participants', { exact: true }).fill('800');
   await dialog.getByLabel('Planned start date', { exact: true }).fill('2027-01-01');
   await dialog.getByLabel('Planned end date', { exact: true }).fill('2028-12-31');
   await dialog
@@ -136,4 +137,40 @@ test('XX and MC codes share one global number across countries', async ({ page }
   }
   await create('Fictional single-country project', 'Kenya', false, 'DEMO-KEXX00109');
   await create('Fictional multi-country project', 'Rwanda', true, 'DEMO-RWMC00110');
+});
+
+test('extended fields persist separately with earlier values and no approval override', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open Growing resilient communities' }).click();
+  await page.getByRole('button', { name: 'Edit project', exact: true }).click();
+  const d = page.getByRole('dialog');
+  await d.getByText('Participants and delivery dates', { exact: true }).click();
+  await d.getByLabel('Planned direct participants', { exact: true }).fill('900');
+  await d.getByLabel('Duration', { exact: true }).fill('Fictional 24 months');
+  await d.getByLabel('Planned indirect community participants', { exact: true }).fill('3000');
+  await d.getByLabel('Participants new to Ripple Effect', { exact: true }).fill('200');
+  await d.getByLabel('Total participant numbers', { exact: true }).fill('1000');
+  await d.getByLabel('Actual implementation start', { exact: true }).fill('2027-02-01');
+  await d.getByText('Narrative and progress', { exact: true }).click();
+  await d
+    .getByLabel('Project narrative', { exact: true })
+    .fill('Fictional expanded delivery plan.');
+  await d
+    .getByLabel('Problem statement 2', { exact: true })
+    .fill('Fictional second problem statement.');
+  await expect(d.getByLabel('Approval status', { exact: true })).toHaveCount(0);
+  await d.getByRole('button', { name: 'Save demo changes' }).click();
+  await expect(page.locator('.profile-summary')).toContainText('3,000');
+  await expect(page.locator('.profile-summary')).toContainText('1,000');
+  await page.getByText('Team, themes, narrative and progress', { exact: true }).click();
+  await expect(page.locator('.profile-read')).toContainText('Fictional expanded delivery plan.');
+  await expect(page.locator('.profile-read')).toContainText('Fictional 24 months');
+  await page.getByRole('tab', { name: 'Activity' }).click();
+  await page.getByText('Earlier name and participant values · version 1', { exact: true }).click();
+  await expect(page.locator('.profile-read')).toContainText('1,250');
+  await page.reload();
+  await page.getByRole('button', { name: 'Open Growing resilient communities' }).click();
+  await expect(page.locator('.profile-summary')).toContainText('3,000');
 });

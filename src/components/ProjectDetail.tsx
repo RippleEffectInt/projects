@@ -1,3 +1,5 @@
+import ProjectProfileDetail, { EarlierValues } from './ProjectProfileDetail';
+import { documentLabels } from '../domain/projectProfile';
 import { useState } from 'react';
 import {
   ArrowLeft,
@@ -17,19 +19,8 @@ import {
   type Project,
   type RequestPreview,
 } from '../domain/projects';
-export const money = (n: number) =>
-  new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    maximumFractionDigits: 0,
-  }).format(n);
-export const date = (s: string) =>
-  new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Europe/London',
-  }).format(new Date(s.length === 10 ? s + 'T12:00:00Z' : s));
+import { money, date } from '../domain/format';
+export { money, date } from '../domain/format';
 export function Badge({ children, tone = '' }: { children: React.ReactNode; tone?: string }) {
   return <span className={`badge ${tone}`}>{children}</span>;
 }
@@ -56,7 +47,13 @@ export default function ProjectDetail({
   const saved = previews.filter((r) => r.projectId === project.id);
   const kind = approvalKind(project);
   const alreadySaved = saved.some((r) => r.projectVersion === project.version && r.kind === kind);
-  const related = projects.filter((p) => p.id === project.parentId || p.parentId === project.id);
+  const related = projects.filter(
+    (p) =>
+      p.id === project.parentId ||
+      p.parentId === project.id ||
+      p.id === project.profile?.umbrellaId ||
+      p.profile?.umbrellaId === project.id,
+  );
   return (
     <>
       <button className="back text-button" onClick={onBack}>
@@ -163,8 +160,10 @@ export default function ProjectDetail({
                 <div>
                   <Users />
                   <span>
-                    Planned participants
-                    <strong>{project.participants.toLocaleString('en-GB')}</strong>
+                    Planned direct participants
+                    <strong>
+                      {project.profile?.plannedDirect?.toLocaleString('en-GB') ?? 'Not recorded'}
+                    </strong>
                   </span>
                 </div>
                 <div>
@@ -227,13 +226,19 @@ export default function ProjectDetail({
                     rel="noopener noreferrer"
                   >
                     <FileText size={19} />
-                    <span>{d.label}</span>
+                    <span>
+                      {d.label}
+                      <small className="document-category">
+                        {documentLabels[d.kind ?? 'other']}
+                      </small>
+                    </span>
                     <ArrowUpRight size={17} />
                   </a>
                 ))}
                 <p className="caption">Example links open in a new tab.</p>
               </section>
             </div>
+            <ProjectProfileDetail project={project} />
             {related.length > 0 && (
               <section className="panel span-two">
                 <h2>Related records</h2>
@@ -249,6 +254,13 @@ export default function ProjectDetail({
                     <span>
                       <small>
                         {p.code} · {p.recordType}
+                        {p.id === project.parentId
+                          ? ' · Parent'
+                          : p.id === project.profile?.umbrellaId
+                            ? ' · Umbrella'
+                            : p.parentId === project.id
+                              ? ' · Child'
+                              : ' · Umbrella member'}
                       </small>
                       <strong>{p.name}</strong>
                     </span>
@@ -299,6 +311,7 @@ export default function ProjectDetail({
           <section className="panel">
             <h2>Project activity</h2>
             <p className="muted">Fictional examples and changes made in this browser.</p>
+            <EarlierValues project={project} />
             <ol className="timeline">
               {[...project.history].reverse().map((h) => (
                 <li key={h.id}>

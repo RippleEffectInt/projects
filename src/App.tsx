@@ -351,11 +351,11 @@ export default function App() {
                             <Users size={21} />
                           </span>
                           <div>
-                            <span>Planned participants · projects</span>
+                            <span>Planned direct participants · projects</span>
                             <strong>
                               {state.projects
                                 .filter((p) => p.recordType === 'Project')
-                                .reduce((n, p) => n + p.participants, 0)
+                                .reduce((n, p) => n + (p.profile?.plannedDirect ?? 0), 0)
                                 .toLocaleString('en-GB')}
                             </strong>
                           </div>
@@ -710,9 +710,8 @@ export default function App() {
                       CAST records, approval previews and a demo activity timeline.
                     </p>
                     <p className="muted">
-                      Permissions, actual dates, funding opportunities, status-change requests and
-                      substitute approver management will follow once the integration contracts are
-                      confirmed.
+                      Permissions, funding opportunities, status-change requests and substitute
+                      approver management will follow once the integration contracts are confirmed.
                     </p>
                   </section>
                 </>

@@ -1,3 +1,5 @@
+import ProjectProfileFields from './ProjectProfileFields';
+import { documentKinds, documentLabels } from '../domain/projectProfile';
 import { useState, type FormEvent } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import {
@@ -25,6 +27,8 @@ export default function ProjectForm({
   const [input, setInput] = useState<ProjectInput>(
     project
       ? {
+          parentId: project.parentId,
+          profile: { ...project.profile },
           multiCountry: project.multiCountry ?? false,
           code: project.code,
           name: project.name,
@@ -49,6 +53,7 @@ export default function ProjectForm({
           endDate: '',
           summary: '',
           documents: [],
+          profile: {},
         },
   );
   const descriptionCode = input.multiCountry ? 'MC' : 'XX';
@@ -63,7 +68,11 @@ export default function ProjectForm({
   }
   function submit(e: FormEvent) {
     e.preventDefault();
-    const submitted = { ...input, code: displayedCode };
+    const submitted = {
+      ...input,
+      code: displayedCode,
+      participants: input.profile?.plannedDirect ?? input.participants,
+    };
     const issues = validateProject(submitted, projects, project?.id);
     if (issues.length) {
       setErrors(issues);
@@ -175,20 +184,6 @@ export default function ProjectForm({
             />
           </label>
           <label>
-            Planned participants
-            <input
-              required
-              type="number"
-              min="0"
-              step="1"
-              value={input.participants}
-              onChange={(e) =>
-                field('participants', e.target.value === '' ? NaN : Number(e.target.value))
-              }
-            />
-          </label>
-          <div />
-          <label>
             Planned start date
             <input
               required
@@ -219,6 +214,12 @@ export default function ProjectForm({
             />
           </label>
         </div>
+        <ProjectProfileFields
+          input={input}
+          projects={projects}
+          id={project?.id}
+          onChange={(patch) => setInput((current) => ({ ...current, ...patch }))}
+        />
         <div className="section-heading">
           <h3>Document links</h3>
           <button
@@ -232,6 +233,29 @@ export default function ProjectForm({
         </div>
         {input.documents.map((d, i) => (
           <div className="document-fields" key={i}>
+            <label>
+              Category
+              <select
+                aria-label={`Document ${i + 1} category`}
+                value={d.kind ?? 'other'}
+                onChange={(e) =>
+                  field(
+                    'documents',
+                    input.documents.map((v, j) =>
+                      j === i
+                        ? { ...v, kind: e.target.value as (typeof documentKinds)[number] }
+                        : v,
+                    ),
+                  )
+                }
+              >
+                {documentKinds.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {documentLabels[kind]}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               Link label
               <input

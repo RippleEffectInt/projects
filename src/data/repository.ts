@@ -1,3 +1,4 @@
+import { previousValues, participantFields, validateProfile } from '../domain/projectProfile';
 import { approvalKind, countryCodes, makePreview, validateProject } from '../domain/projects';
 import type { Checklist, Project, ProjectInput, RequestPreview } from '../domain/projects';
 import { seedProjects } from './seed';
@@ -47,7 +48,7 @@ export class DemoRepository implements ProjectRepository {
             p.documents.some(
               (d) => !d || typeof d.label !== 'string' || typeof d.url !== 'string',
             ) ||
-            validateProject(p, [], p.id).length ||
+            validateProject(p, value.projects, p.id).length ||
             p.countryCode !== countryCodes[p.country] ||
             ![
               'Project Outline',
@@ -100,6 +101,18 @@ export class DemoRepository implements ProjectRepository {
       if (
         value.nextProjectNumber !== undefined &&
         (!Number.isSafeInteger(value.nextProjectNumber) || value.nextProjectNumber < 1)
+      )
+        throw new Error();
+      if (
+        value.projects.some(
+          (p) =>
+            p.previousValues &&
+            (!p.previousValues.participants ||
+              typeof p.previousValues.name !== 'string' ||
+              !Number.isSafeInteger(p.previousValues.version) ||
+              !Number.isFinite(Date.parse(p.previousValues.at)) ||
+              validateProfile(p.previousValues.participants).length),
+        )
       )
         throw new Error();
       return value;
@@ -175,13 +188,21 @@ export class DemoRepository implements ProjectRepository {
       throw new Error('This example has an approval pending. Editing is locked until feedback.');
     const errors = validateProject(input, state.projects, id);
     if (errors.length) throw new Error(errors.join(' '));
+    const participantChanges = participantFields.some(
+      ([key]) => p.profile?.[key] !== input.profile?.[key],
+    );
     const updated = {
       ...p,
       ...input,
       name: input.name.trim(),
       summary: input.summary.trim(),
       countryCode: countryCodes[input.country],
+      stage: p.stage,
+      approvalStatus: p.approvalStatus,
+      designStatus: p.designStatus,
       version: p.version + 1,
+      previousValues:
+        p.name !== input.name.trim() || participantChanges ? previousValues(p) : p.previousValues,
       history: [
         ...p.history,
         {

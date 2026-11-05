@@ -107,3 +107,54 @@ describe('global demo code allocation', () => {
     );
   });
 });
+
+describe('extended project persistence and history', () => {
+  it('saves separate measures and actual dates, retaining earlier values on changes', () => {
+    const p = repository.load().projects[0];
+    const changed = {
+      ...p,
+      name: 'Fictional revised project',
+      profile: {
+        ...p.profile,
+        plannedDirect: 0,
+        plannedIndirect: 700,
+        newParticipants: 20,
+        totalParticipants: 400,
+        actualStartDate: '2027-02-01',
+        narrative: 'Fictional updated narrative',
+      },
+    };
+    const state = repository.update(p.id, p.version, changed);
+    const updated = state.projects.find((item) => item.id === p.id)!;
+    expect(updated.profile).toMatchObject({
+      plannedDirect: 0,
+      plannedIndirect: 700,
+      newParticipants: 20,
+      totalParticipants: 400,
+      actualStartDate: '2027-02-01',
+    });
+    expect(updated.previousValues).toMatchObject({
+      name: p.name,
+      version: 1,
+      participants: { plannedDirect: p.profile!.plannedDirect },
+    });
+    expect(repository.load().projects.find((item) => item.id === p.id)?.profile?.narrative).toBe(
+      'Fictional updated narrative',
+    );
+  });
+  it('keeps process-managed stage and approval state out of ordinary edits', () => {
+    const p = repository.load().projects[0];
+    const altered = {
+      ...p,
+      stage: 'Active' as const,
+      approvalStatus: 'Approved' as const,
+      designStatus: 'Overridden',
+    };
+    const updated = repository
+      .update(p.id, p.version, altered)
+      .projects.find((item) => item.id === p.id)!;
+    expect(updated.stage).toBe(p.stage);
+    expect(updated.approvalStatus).toBe(p.approvalStatus);
+    expect(updated.designStatus).toBe(p.designStatus);
+  });
+});

@@ -1,3 +1,10 @@
+import {
+  validateProfile,
+  validateRelationships,
+  documentKinds,
+  type ProjectProfile,
+  type PreviousValues,
+} from './projectProfile';
 export const countries = ['Ethiopia', 'Kenya', 'Malawi', 'Rwanda', 'Uganda', 'Zambia'] as const;
 export const stages = [
   'Project Outline',
@@ -20,6 +27,7 @@ export interface Activity {
 export interface DocumentLink {
   label: string;
   url: string;
+  kind?: (typeof documentKinds)[number];
 }
 export interface Project {
   id: string;
@@ -39,11 +47,15 @@ export interface Project {
   summary: string;
   documents: DocumentLink[];
   parentId?: string;
+  profile?: ProjectProfile;
+  previousValues?: PreviousValues;
   multiCountry?: boolean;
   history: Activity[];
 }
 export type ProjectInput = Pick<
   Project,
+  | 'parentId'
+  | 'profile'
   | 'multiCountry'
   | 'code'
   | 'name'
@@ -123,6 +135,12 @@ export function validateProject(
     errors.push('Enter a summary of 1–4,000 characters.');
   if (input.documents.some((d) => !d.label.trim() || !safeDocumentUrl(d.url)))
     errors.push('Document links need a label and an HTTPS address.');
+  if (input.documents.some((d) => d.kind !== undefined && !documentKinds.includes(d.kind)))
+    errors.push('Choose a valid document category.');
+  errors.push(
+    ...validateProfile(input.profile),
+    ...validateRelationships(input, projects, ignoreId),
+  );
   return errors;
 }
 function validDate(value: string) {
@@ -146,7 +164,11 @@ export function previewErrors(p: Project, c: Checklist): string[] {
     return [
       'This project is not ready for a new approval request at its current stage and status.',
     ];
-  const errors = validateProject(p, [], p.id);
+  const errors = validateProject(
+    { ...p, parentId: undefined, profile: { ...p.profile, umbrellaId: undefined } },
+    [],
+    p.id,
+  );
   if (!c.comments.trim() || c.comments.length > 2000)
     errors.push('Add submission comments (up to 2,000 characters).');
   if (kind === 'Design') {
