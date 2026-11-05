@@ -8,7 +8,11 @@ beforeEach(() => {
 describe('demo persistence', () => {
   it('creates and reloads a project without modifying seed examples', () => {
     const p = repository.load().projects[0];
-    const state = repository.create({ ...p, code: 'DEMO-NEW-109', name: 'New fictional project' });
+    const state = repository.create({
+      ...p,
+      code: 'DEMO-KEXX00109',
+      name: 'New fictional project',
+    });
     expect(state.projects).toHaveLength(9);
     expect(repository.load().projects[0].name).toBe('New fictional project');
     expect(state.projects[0].stage).toBe('Project Outline');
@@ -49,7 +53,57 @@ describe('demo persistence', () => {
       key: () => null,
     };
     expect(() =>
-      new DemoRepository(blocked).create({ ...repository.load().projects[0], code: 'DEMO-NEW' }),
+      new DemoRepository(blocked).create({
+        ...repository.load().projects[0],
+        code: 'DEMO-KEXX00109',
+      }),
     ).toThrow('Could not save');
+  });
+});
+
+describe('global demo code allocation', () => {
+  it('continues the same sequence across countries and multi-country projects', () => {
+    const p = repository.load().projects[0];
+    repository.create({ ...p, code: 'DEMO-KEXX00109', multiCountry: false });
+    const state = repository.create({
+      ...p,
+      code: 'DEMO-RWMC00110',
+      country: 'Rwanda',
+      multiCountry: true,
+    });
+    expect(state.nextProjectNumber).toBe(111);
+    expect(repository.load().projects[0]).toMatchObject({
+      code: 'DEMO-RWMC00110',
+      multiCountry: true,
+    });
+  });
+  it('rejects stale numbers, mismatched countries and mismatched multi-country flags', () => {
+    const p = repository.load().projects[0];
+    repository.create({ ...p, code: 'DEMO-KEXX00109' });
+    expect(() => repository.create({ ...p, country: 'Rwanda', code: 'DEMO-RWXX00109' })).toThrow(
+      'global demo number has changed',
+    );
+    expect(() => repository.create({ ...p, code: 'DEMO-RWXX00110' })).toThrow('selected country');
+    expect(() => repository.create({ ...p, code: 'DEMO-KEMC00110', multiCountry: false })).toThrow(
+      'multi-country setting',
+    );
+  });
+  it('preserves the counter through record removal and cannot renumber on edit', () => {
+    const p = repository.load().projects[0];
+    const state = repository.create({ ...p, code: 'DEMO-KEXX00109' });
+    localStorage.setItem(
+      'ripple-projects-demo-v1',
+      JSON.stringify({
+        ...state,
+        projects: state.projects.filter((item) => item.code !== 'DEMO-KEXX00109'),
+      }),
+    );
+    expect(repository.create({ ...p, code: 'DEMO-KEXX00110' }).nextProjectNumber).toBe(111);
+    expect(() => repository.update(p.id, 1, { ...p, country: 'Rwanda' })).toThrow(
+      'Country is fixed',
+    );
+    expect(() => repository.update(p.id, 1, { ...p, multiCountry: true })).toThrow(
+      'multi-country setting is fixed',
+    );
   });
 });

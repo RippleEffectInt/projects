@@ -30,7 +30,7 @@ Browser tests use `/usr/bin/chromium` in this environment. Elsewhere, set `CHROM
 
 - Search names, codes, summaries and countries; combine country, stage and Project/CAST filters. Switch between list and cards and sort by code, name or budget.
 - Open a project for its next action, stage, planned figures, document links, related CAST record and activity.
-- Create a fictional Project or CAST, or edit an example. Project codes and record types stay fixed after creation. Pending examples cannot be edited.
+- Create a fictional Project or CAST, or edit an example. The code is generated from Country, the single/multi-country setting (XX/MC) and one global demo number. No code components or numbers need manual entry. Codes, country, the multi-country setting and record types stay fixed after creation. Pending examples cannot be edited.
 - Prepare Outline, Design or CAST previews where stage and status permit. Design requires three provisional confirmations, one duration choice and comments. Review before saving.
 - Saved previews retain their project version. They never change a project stage or approval status. Duplicate previews for the same project version are rejected.
 - Changes persist in this browser. Reset restores the fictional examples. Storage problems produce visible recovery messages; data is not silently discarded. Clearing browser data also removes edits.
@@ -53,3 +53,5 @@ Budgets use **GBP as a demo assumption**, not a validated production currency ma
 React 19, TypeScript and Vite keep the static frontend small and familiar. Native dialog elements provide modal focus containment and Escape handling. Icons are bundled locally; the app loads no remote fonts, analytics or images.
 
 See [architecture and configuration](docs/architecture.md), [approval contracts and uncertainties](docs/approval-contracts.md), [migration plan](docs/integration-plan.md) and [validation record](docs/validation.md).
+
+Demo codes retain the `DEMO-` prefix. Their core format has no separators, for example `KEXX00109` or `RWMC00110`; the numeric part is padded to at least five digits. The browser stores one global next-number value, validates it again at creation and preserves it when records are removed. Original fictional fixture codes remain valid and contribute their numbers to the demo sequence. This is not a production number reservation service: concurrent browsers require an atomic server-side allocator, idempotent retries and an agreed starting point from the existing system before cutover. No existing real project code or number has been imported.

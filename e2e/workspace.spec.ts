@@ -6,7 +6,8 @@ test('create, edit, persist, preview and reset a fictional project', async ({ pa
   await page.getByRole('button', { name: 'New project' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Project name', { exact: true }).fill('Fictional community gardens');
-  await dialog.getByLabel('Project code', { exact: true }).fill('DEMO-TEST-109');
+  await expect(dialog.getByLabel('Project code', { exact: true })).toHaveValue('DEMO-KEXX00109');
+  await expect(dialog.getByLabel('Project code', { exact: true })).toHaveAttribute('readonly', '');
   await dialog.getByLabel('Budget (GBP)', { exact: true }).fill('123000');
   await dialog.getByLabel('Planned participants', { exact: true }).fill('800');
   await dialog.getByLabel('Planned start date', { exact: true }).fill('2027-01-01');
@@ -29,7 +30,7 @@ test('create, edit, persist, preview and reset a fictional project', async ({ pa
   await page.getByRole('tab', { name: /Approvals/ }).click();
   await expect(page.getByRole('tabpanel')).toContainText('Preview only — not submitted');
   await page.reload();
-  await page.getByRole('textbox', { name: 'Search projects' }).fill('DEMO-TEST-109');
+  await page.getByRole('textbox', { name: 'Search projects' }).fill('DEMO-KEXX00109');
   await page.getByRole('button', { name: 'Open Fictional garden learning' }).click();
   await expect(
     page.getByRole('heading', { name: 'Fictional garden learning', exact: true }),
@@ -40,7 +41,7 @@ test('create, edit, persist, preview and reset a fictional project', async ({ pa
   await page.getByRole('button', { name: 'Reset demo data', exact: true }).last().click();
   await dialog.getByRole('button', { name: 'Reset demo data', exact: true }).click();
   await page.getByRole('button', { name: 'Projects', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Search projects' }).fill('DEMO-TEST-109');
+  await page.getByRole('textbox', { name: 'Search projects' }).fill('DEMO-KEXX00109');
   await expect(page.getByRole('heading', { name: 'No projects match your filters' })).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -113,4 +114,26 @@ test('an open edit form detects changes from another tab', async ({ page, contex
   await dialog.getByRole('button', { name: 'Save demo changes', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('changed in another tab');
   await second.close();
+});
+
+test('XX and MC codes share one global number across countries', async ({ page }) => {
+  await page.goto('/');
+  const dialog = page.getByRole('dialog');
+  async function create(name: string, country: string, multi: boolean, expectedCode: string) {
+    await page.getByRole('button', { name: 'New project' }).click();
+    await dialog.getByLabel('Project name', { exact: true }).fill(name);
+    await dialog.getByLabel('Country', { exact: true }).selectOption(country);
+    await dialog.getByLabel('Multi-country project', { exact: true }).setChecked(multi);
+    await expect(dialog.getByLabel('Project code', { exact: true })).toHaveValue(expectedCode);
+    await dialog.getByLabel('Planned start date', { exact: true }).fill('2027-01-01');
+    await dialog.getByLabel('Planned end date', { exact: true }).fill('2028-01-01');
+    await dialog
+      .getByLabel('Project summary', { exact: true })
+      .fill('Fictional project for testing global code numbering.');
+    await dialog.getByRole('button', { name: 'Create demo project' }).click();
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'All projects', exact: true }).click();
+  }
+  await create('Fictional single-country project', 'Kenya', false, 'DEMO-KEXX00109');
+  await create('Fictional multi-country project', 'Rwanda', true, 'DEMO-RWMC00110');
 });

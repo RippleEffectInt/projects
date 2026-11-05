@@ -39,10 +39,12 @@ export interface Project {
   summary: string;
   documents: DocumentLink[];
   parentId?: string;
+  multiCountry?: boolean;
   history: Activity[];
 }
 export type ProjectInput = Pick<
   Project,
+  | 'multiCountry'
   | 'code'
   | 'name'
   | 'country'
@@ -106,6 +108,8 @@ export function validateProject(
   if (!input.name.trim() || input.name.length > 160)
     errors.push('Enter a project name of 1–160 characters.');
   if (!countries.includes(input.country)) errors.push('Choose a supported country.');
+  if (input.multiCountry !== undefined && typeof input.multiCountry !== 'boolean')
+    errors.push('Choose a valid multi-country setting.');
   if (!['Project', 'CAST'].includes(input.recordType)) errors.push('Choose a valid record type.');
   if (!Number.isFinite(input.budget) || input.budget < 0)
     errors.push('Budget must be zero or more.');

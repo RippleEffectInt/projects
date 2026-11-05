@@ -1,8 +1,10 @@
 import { approvalKind, countryCodes, makePreview, validateProject } from '../domain/projects';
 import type { Checklist, Project, ProjectInput, RequestPreview } from '../domain/projects';
 import { seedProjects } from './seed';
+import { nextDemoProjectNumber, parseDemoProjectCode } from '../domain/projectCodes';
 export interface Snapshot {
   schema: 1;
+  nextProjectNumber?: number;
   projects: Project[];
   previews: RequestPreview[];
 }
@@ -95,6 +97,11 @@ export class DemoRepository implements ProjectRepository {
         )
       )
         throw new Error();
+      if (
+        value.nextProjectNumber !== undefined &&
+        (!Number.isSafeInteger(value.nextProjectNumber) || value.nextProjectNumber < 1)
+      )
+        throw new Error();
       return value;
     } catch {
       throw new Error(
@@ -112,6 +119,19 @@ export class DemoRepository implements ProjectRepository {
   }
   create(input: ProjectInput): Snapshot {
     const state = this.load();
+    const parsedCode = parseDemoProjectCode(input.code);
+    if (!parsedCode || parsedCode.countryCode !== countryCodes[input.country])
+      throw new Error('Use the generated demo code for the selected country.');
+    if (parsedCode.descriptionCode !== (input.multiCountry ? 'MC' : 'XX'))
+      throw new Error('The description code must match the multi-country setting.');
+    const nextNumber = nextDemoProjectNumber(
+      state.projects.map((p) => p.code),
+      state.nextProjectNumber,
+    );
+    if (parsedCode.number !== nextNumber)
+      throw new Error(
+        'The next global demo number has changed. Refresh the workspace and reopen the create form.',
+      );
     const errors = validateProject(input, state.projects);
     if (errors.length) throw new Error(errors.join(' '));
     const project: Project = {
@@ -134,11 +154,21 @@ export class DemoRepository implements ProjectRepository {
         },
       ],
     };
-    return this.persist({ ...state, projects: [project, ...state.projects] });
+    return this.persist({
+      ...state,
+      nextProjectNumber: nextNumber + 1,
+      projects: [project, ...state.projects],
+    });
   }
   update(id: string, expectedVersion: number, input: ProjectInput): Snapshot {
     const state = this.load();
     const p = this.current(state, id, expectedVersion);
+    if ((input.multiCountry ?? false) !== (p.multiCountry ?? false))
+      throw new Error(
+        'The multi-country setting is fixed with the project code after creation in this demo.',
+      );
+    if (input.country !== p.country)
+      throw new Error('Country is fixed with the project code after creation in this demo.');
     if (input.code !== p.code || input.recordType !== p.recordType)
       throw new Error('Project code and record type are stable after creation.');
     if (p.approvalStatus === 'Pending Thematic Approval')

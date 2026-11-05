@@ -9,6 +9,9 @@ test('key screens have no automated WCAG A/AA violations', async ({ page }) => {
   }
   await page.goto('/');
   await check();
+  await page.getByRole('button', { name: 'New project' }).click();
+  await check();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Open Harvesting opportunity' }).click();
   await check();
   await page.getByRole('tab', { name: 'Overview', exact: true }).focus();

@@ -28,6 +28,8 @@ Use Entra sign-in for the intended tenant and enforce authentication on both the
 
 The server must re-read stage/status and validate the complete mapped production checklist, resolve intended approvers/substitutes, and enforce optimistic concurrency. Use a durable unique idempotency key (project GUID + stage + project version + request kind) and a request ledger/outbox with recovery for partial writes. Define one active request per project/stage. SharePoint writes across lists are not a transaction; project and request updates need explicit retry/reconciliation semantics. Use ETags/If-Match and return 409 on conflicts; blind overwrite is unacceptable.
 
+Project numbers must be allocated by one durable global counter across countries and single/multi-country projects. Derive the country prefix from the verified Country mapping and select XX or MC from the project’s multi-country flag. Reserve numbers atomically on the server with idempotent creation and a uniqueness constraint on the number as well as the complete code. Seed the counter from reconciled existing records at cutover, never from a browser’s demo state. Define cancellation/gap handling and keep allocated codes stable. The browser demo only approximates allocation; it is not a multi-user guarantee.
+
 The API owns Microsoft Graph/SharePoint credentials using a managed identity or other approved server identity with least privilege on isolated test resources. Only public UI configuration may be browser-visible. No client secret, flow trigger URL, access token or connection string may use a Vite `VITE_` variable. There are no browser environment variables in this iteration.
 
 ## Azure Static Web Apps preparation

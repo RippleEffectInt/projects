@@ -1,21 +1,31 @@
 import { useState, type FormEvent } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { countries, validateProject, type Project, type ProjectInput } from '../domain/projects';
+import {
+  countries,
+  countryCodes,
+  validateProject,
+  type Project,
+  type ProjectInput,
+} from '../domain/projects';
 import Modal from './Modal';
+import { formatProjectCode, nextDemoProjectNumber } from '../domain/projectCodes';
 export default function ProjectForm({
   project,
   projects,
   onSave,
   onClose,
+  nextProjectNumber,
 }: {
   project?: Project;
   projects: Project[];
   onSave: (input: ProjectInput) => void;
   onClose: () => void;
+  nextProjectNumber?: number;
 }) {
   const [input, setInput] = useState<ProjectInput>(
     project
       ? {
+          multiCountry: project.multiCountry ?? false,
           code: project.code,
           name: project.name,
           country: project.country,
@@ -28,6 +38,7 @@ export default function ProjectForm({
           documents: project.documents.map((d) => ({ ...d })),
         }
       : {
+          multiCountry: false,
           code: 'DEMO-',
           name: '',
           country: 'Kenya',
@@ -40,19 +51,26 @@ export default function ProjectForm({
           documents: [],
         },
   );
+  const descriptionCode = input.multiCountry ? 'MC' : 'XX';
+  const autoNumber = nextProjectNumber ?? nextDemoProjectNumber(projects.map((p) => p.code));
+  const generatedCode = /^[A-Z]{2}$/.test(descriptionCode)
+    ? formatProjectCode(countryCodes[input.country], descriptionCode, autoNumber)
+    : '';
+  const displayedCode = project ? input.code : generatedCode ? `DEMO-${generatedCode}` : '';
   const [errors, setErrors] = useState<string[]>([]);
   function field<K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) {
     setInput((current) => ({ ...current, [key]: value }));
   }
   function submit(e: FormEvent) {
     e.preventDefault();
-    const issues = validateProject(input, projects, project?.id);
+    const submitted = { ...input, code: displayedCode };
+    const issues = validateProject(submitted, projects, project?.id);
     if (issues.length) {
       setErrors(issues);
       return;
     }
     try {
-      onSave(input);
+      onSave(submitted);
     } catch (error) {
       setErrors([(error as Error).message]);
     }
@@ -88,13 +106,37 @@ export default function ProjectForm({
             <input
               aria-label="Project code"
               required
-              value={input.code}
+              value={displayedCode}
+              readOnly
               disabled={!!project}
-              onChange={(e) => field('code', e.target.value.toUpperCase())}
-              placeholder="DEMO-KE-109"
+              placeholder="Choose a description code"
             />
-            <small>Unique and fixed after creation.</small>
+            <small>
+              {project
+                ? 'Unique and fixed after creation.'
+                : 'Generated automatically. DEMO- marks this as fictional.'}
+            </small>
           </label>
+          <label className="check span-two">
+            <input
+              type="checkbox"
+              checked={input.multiCountry ?? false}
+              disabled={!!project}
+              onChange={(e) => field('multiCountry', e.target.checked)}
+            />
+            Multi-country project
+          </label>
+          {!project && (
+            <div className="soft-box span-two code-preview" role="status">
+              <strong>Code format preview: {generatedCode || 'automatic code'}</strong>
+              <p>
+                One global sequence across this browser’s projects and CAST records. The next demo
+                number is {String(autoNumber).padStart(5, '0')}. A preview does not reserve it. No
+                live code is allocated. Description code is XX for single-country projects or MC for
+                multi-country projects.
+              </p>
+            </div>
+          )}
           <label>
             Record type
             <select
@@ -109,7 +151,9 @@ export default function ProjectForm({
           <label>
             Country
             <select
+              aria-label="Country"
               value={input.country}
+              disabled={!!project}
               onChange={(e) => field('country', e.target.value as ProjectInput['country'])}
             >
               {countries.map((c) => (

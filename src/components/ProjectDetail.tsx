@@ -68,6 +68,7 @@ export default function ProjectDetail({
           <div className="project-meta">
             <span className="eyebrow">{project.code}</span>
             <Badge>{project.country}</Badge>
+            {project.multiCountry && <Badge tone="blue">Multi-country</Badge>}
             {project.recordType === 'CAST' && <Badge tone="purple">CAST</Badge>}
           </div>
           <h1>{project.name}</h1>

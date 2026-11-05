@@ -729,6 +729,7 @@ export default function App() {
         <ProjectForm
           project={form === 'edit' ? project : undefined}
           projects={state.projects}
+          nextProjectNumber={state.nextProjectNumber}
           onSave={saveProject}
           onClose={() => setForm(null)}
         />
