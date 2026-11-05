@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env*
+!.env.example
+coverage/
+playwright-report/
+test-results/
+api/local.settings.json
