@@ -1,0 +1,17 @@
+{
+  "name": "ripple-projects-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/functions/*.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test src/*.test.js",
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.10.0"
+  }
+}
